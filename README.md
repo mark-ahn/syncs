@@ -41,3 +41,5 @@ return
 Client -> RefCounter: Release()
 end
 ```
+
+![](http://www.plantuml.com/plantuml/png/TT31JiCm30RWUvxYFxORy02LG9Cg3bmub0UOkiHPop8RkGvzVHh6025wYVHBlp_5tatMg-LpScqQYGst3-WejfBPIB7PD52FUppJNCdXbRpTG2bHFz4-PlQrEwhaDuoCdiK6KXoI-1CamakWVza6FWbJw8gi_gujgQf_TL_aJ8zf8cot3OBifoNRCFAnkaxMxjhvQr--kSXF9SVU5refGjv9lsKN14N5B7h2FDhmDUY8mwhTNLR_12qhhwptKolORdcM2ty0)

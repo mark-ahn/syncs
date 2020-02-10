@@ -38,7 +38,7 @@ func init() {
 	rand.Seed(time.Now().Unix())
 }
 func TestRc(t *testing.T) {
-	rc := syncs.NewRefCounter(&dummy_stream{}, func(obj interface{}) {
+	rc := syncs.NewRefCounterOfInterface(&dummy_stream{}, func(obj interface{}) {
 		obj.(io.Closer).Close()
 	})
 
@@ -46,8 +46,8 @@ func TestRc(t *testing.T) {
 
 	threads := &sync.WaitGroup{}
 
-	var some_work func(syncs.RefCounter)
-	some_work = func(rc syncs.RefCounter) {
+	var some_work func(*syncs.RefCounterOfInterface)
+	some_work = func(rc *syncs.RefCounterOfInterface) {
 		defer func() {
 			rc.Release()
 			threads.Done()
@@ -58,7 +58,7 @@ func TestRc(t *testing.T) {
 			go some_work(rc.Clone())
 		}
 
-		stream := rc.Interface().(io.ReadWriter)
+		stream := rc.Object().(io.ReadWriter)
 
 		stream.Read([]byte{})
 		stream.Write([]byte{})
@@ -71,6 +71,44 @@ func TestRc(t *testing.T) {
 	}
 
 	threads.Wait()
-	ds := rc.Interface().(*dummy_stream)
+	ds := rc.Object().(*dummy_stream)
+	fmt.Printf("done read: %v, write %v\n", ds.readCnt, ds.writeCnt)
+}
+
+func TestRcGeneric(t *testing.T) {
+	rc := NewRefCounterOfDummy_stream(&dummy_stream{}, func(obj *dummy_stream) {
+		obj.Close()
+	})
+
+	defer rc.Release()
+
+	threads := &sync.WaitGroup{}
+
+	var some_work func(*RefCounterOfDummy_stream)
+	some_work = func(rc *RefCounterOfDummy_stream) {
+		defer func() {
+			rc.Release()
+			threads.Done()
+		}()
+
+		if rand.Intn(10) == 0 {
+			threads.Add(1)
+			go some_work(rc.Clone())
+		}
+
+		stream := rc.Object()
+
+		stream.Read([]byte{})
+		stream.Write([]byte{})
+
+	}
+
+	for i := 0; i < 100; i += 1 {
+		threads.Add(1)
+		go some_work(rc.Clone())
+	}
+
+	threads.Wait()
+	ds := rc.Object()
 	fmt.Printf("done read: %v, write %v\n", ds.readCnt, ds.writeCnt)
 }
