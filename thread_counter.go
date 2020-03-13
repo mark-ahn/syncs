@@ -34,7 +34,7 @@ func ThreadCounterFrom(ctx context.Context) ThreadCounter {
 	return v
 }
 
-func WithThreadDoneNotify(ctx context.Context, threads *sync.WaitGroup) (context.Context, chan<- struct{}) {
+func WithThreadDoneNotify(ctx context.Context, threads *sync.WaitGroup) (context.Context, <-chan struct{}) {
 	ctx = WithThreadCounter(ctx, threads)
 	done_ch := make(chan struct{})
 	go func() {
