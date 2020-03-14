@@ -5,6 +5,10 @@ import (
 	"sync"
 )
 
+type Valuable interface {
+	Value(interface{}) interface{}
+}
+
 type ThreadCounter interface {
 	Add(int)
 	Done()
@@ -26,7 +30,7 @@ const (
 func WithThreadCounter(ctx context.Context, counter ThreadCounter) context.Context {
 	return context.WithValue(ctx, context_key_thread_counter, counter)
 }
-func ThreadCounterFrom(ctx context.Context) ThreadCounter {
+func ThreadCounterFrom(ctx Valuable) ThreadCounter {
 	v, ok := ctx.Value(context_key_thread_counter).(ThreadCounter)
 	if !ok {
 		return dummy_counter
