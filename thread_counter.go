@@ -35,24 +35,23 @@ func ThreadCounterFrom(ctx context.Context) ThreadCounter {
 }
 
 func WithThreadDoneNotify(ctx context.Context, threads *sync.WaitGroup) (context.Context, <-chan struct{}) {
-	ctx = WithThreadCounter(ctx, threads)
+	p_cnt := ThreadCounterFrom(ctx)
+
+	in_ctx := WithThreadCounter(ctx, threads)
 	done_ch := make(chan struct{})
+	p_cnt.Add(1)
 	go func() {
+		defer p_cnt.Done()
 		defer close(done_ch)
-		defer func() {
-			threads.Wait()
-			// if release != nil {
-			// 	release()
-			// }
-		}()
+		defer threads.Wait()
 
 	loop:
 		for {
 			select {
-			case <-ctx.Done():
+			case <-in_ctx.Done():
 				break loop
 			}
 		}
 	}()
-	return ctx, done_ch
+	return in_ctx, done_ch
 }
