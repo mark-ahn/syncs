@@ -83,6 +83,9 @@ func WithThreadDoneNotify(ctx context.Context, threads *sync.WaitGroup) (context
 		for {
 			select {
 			case <-start_ctx.Done():
+				// consider Add() is not called, but start_ctx.Done() because of parent context
+				// cnt_start should be called at least onece to avoid resource leak
+				cnt_start()
 				break loop
 			}
 		}
