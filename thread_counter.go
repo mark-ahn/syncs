@@ -38,10 +38,40 @@ func ThreadCounterFrom(ctx Valuable) ThreadCounter {
 	return v
 }
 
+type WaitGroup interface {
+	ThreadCounter
+	Wait()
+}
+
+type cnt_starter struct {
+	group   WaitGroup
+	starter func()
+}
+
+func new_cnt_starter(group WaitGroup, f func()) *cnt_starter {
+	once := sync.Once{}
+	return &cnt_starter{
+		group: group,
+		starter: func() {
+			once.Do(f)
+		},
+	}
+}
+func (__ *cnt_starter) Add(i int) {
+	__.starter()
+	__.group.Add(i)
+}
+
+func (__ *cnt_starter) Done() { __.group.Done() }
+
+// func (__ *cnt_starter) Wait() { __.group.Wait() }
+
 func WithThreadDoneNotify(ctx context.Context, threads *sync.WaitGroup) (context.Context, <-chan struct{}) {
 	p_cnt := ThreadCounterFrom(ctx)
 
-	in_ctx := WithThreadCounter(ctx, threads)
+	start_ctx, cnt_start := context.WithCancel(ctx)
+
+	in_ctx := WithThreadCounter(ctx, new_cnt_starter(threads, cnt_start))
 	done_ch := make(chan struct{})
 	p_cnt.Add(1)
 	go func() {
@@ -52,7 +82,7 @@ func WithThreadDoneNotify(ctx context.Context, threads *sync.WaitGroup) (context
 	loop:
 		for {
 			select {
-			case <-in_ctx.Done():
+			case <-start_ctx.Done():
 				break loop
 			}
 		}
