@@ -9,17 +9,27 @@ type Valuable interface {
 	Value(interface{}) interface{}
 }
 
-type ThreadCounter interface {
+type SyncCounter interface {
 	Add(int)
 	Done()
 }
 
-type dummy_thread_counter struct{}
+type ThreadCounter interface {
+	AddOrNot(int) bool
+	Done()
+}
 
-func (_ dummy_thread_counter) Add(int) {}
-func (_ dummy_thread_counter) Done()   {}
+type dummy_counter <-chan struct{}
 
-var dummy_counter = &dummy_thread_counter{}
+func (__ dummy_counter) AddOrNot(int) bool {
+	select {
+	case <-__:
+		return false
+	default:
+		return true
+	}
+}
+func (_ dummy_counter) Done() {}
 
 type context_key int
 
@@ -30,50 +40,68 @@ const (
 func WithThreadCounter(ctx context.Context, counter ThreadCounter) context.Context {
 	return context.WithValue(ctx, context_key_thread_counter, counter)
 }
-func ThreadCounterFrom(ctx Valuable) ThreadCounter {
+
+func ThreadCounterFrom(ctx context.Context) ThreadCounter {
 	v, ok := ctx.Value(context_key_thread_counter).(ThreadCounter)
 	if !ok {
-		return dummy_counter
+		return dummy_counter(ctx.Done())
 	}
 	return v
 }
 
 type WaitGroup interface {
-	ThreadCounter
+	SyncCounter
 	Wait()
 }
 
 type cnt_starter struct {
-	group   WaitGroup
-	starter func()
+	counter SyncCounter
+	done    <-chan struct{}
+	mutext  *sync.Mutex
 }
 
-func new_cnt_starter(group WaitGroup, f func()) *cnt_starter {
-	once := sync.Once{}
+func new_cnt_starter(group SyncCounter, mutext *sync.Mutex, done <-chan struct{}) *cnt_starter {
 	return &cnt_starter{
-		group: group,
-		starter: func() {
-			once.Do(f)
-		},
+		counter: group,
+		done:    done,
+		mutext:  mutext,
 	}
 }
-func (__ *cnt_starter) Add(i int) {
-	__.starter()
-	__.group.Add(i)
+func (__ *cnt_starter) AddOrNot(i int) bool {
+	__.mutext.Lock()
+	defer __.mutext.Unlock()
+
+	select {
+	case <-__.done:
+		return false
+	default:
+		__.counter.Add(i)
+		return true
+	}
 }
 
-func (__ *cnt_starter) Done() { __.group.Done() }
+func (__ *cnt_starter) Done() {
+	__.counter.Done()
+}
 
 // func (__ *cnt_starter) Wait() { __.group.Wait() }
 
-func WithThreadDoneNotify(ctx context.Context, threads *sync.WaitGroup) (context.Context, <-chan struct{}) {
+func WithThreadDoneNotify(ctx context.Context, threads WaitGroup) (context.Context, <-chan struct{}) {
 	p_cnt := ThreadCounterFrom(ctx)
 
-	start_ctx, cnt_start := context.WithCancel(ctx)
+	mutex := &sync.Mutex{}
+	sync_ch := make(chan struct{})
 
-	in_ctx := WithThreadCounter(ctx, new_cnt_starter(threads, cnt_start))
+	in_ctx := WithThreadCounter(ctx, new_cnt_starter(threads, mutex, sync_ch))
 	done_ch := make(chan struct{})
-	p_cnt.Add(1)
+
+	cnted := p_cnt.AddOrNot(1)
+	if !cnted {
+		close(done_ch)
+		close(sync_ch)
+		return in_ctx, done_ch
+	}
+
 	go func() {
 		defer p_cnt.Done()
 		defer close(done_ch)
@@ -82,10 +110,12 @@ func WithThreadDoneNotify(ctx context.Context, threads *sync.WaitGroup) (context
 	loop:
 		for {
 			select {
-			case <-start_ctx.Done():
-				// consider Add() is not called, but start_ctx.Done() because of parent context
-				// cnt_start should be called at least onece to avoid resource leak
-				cnt_start()
+			// case <-start_ctx.Done():
+			// 	break loop
+			case <-ctx.Done():
+				mutex.Lock()
+				close(sync_ch)
+				mutex.Unlock()
 				break loop
 			}
 		}
