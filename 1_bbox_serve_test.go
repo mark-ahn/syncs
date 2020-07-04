@@ -23,13 +23,13 @@ func DurationFrom(ctx syncs.Valuable) time.Duration {
 
 type periodic_print struct{}
 
-func (__ *periodic_print) ServeThread(ctx context.Context, brk syncs.ContextBreakSetter) error {
+func (__ *periodic_print) ServeThread(ctx context.Context, tctx syncs.ThreadContext) error {
 	th_cnt := syncs.ThreadCounterFrom(ctx)
 	ok := th_cnt.AddOrNot(1)
 	if !ok {
 		return fmt.Errorf("cannot start periodic thread")
 	}
-	brk.SetValue(ctx_key_duration, time.Second)
+	tctx.SetValue(ctx_key_duration, time.Second)
 	go func() {
 		defer th_cnt.Done()
 		ticker := time.NewTicker(time.Second)
@@ -51,24 +51,24 @@ func Test_Serve(t *testing.T) {
 	// ctx, cancel := context.WithCancel(context.TODO())
 	// cancel()
 	ctx := context.TODO()
-	dctx, err := syncs.Serve(ctx, &periodic_print{})
+	sctx, err := syncs.Serve(ctx, &periodic_print{})
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	du_set := DurationFrom(dctx)
+	du_set := DurationFrom(sctx)
 	fmt.Println(du_set)
 
 	ctrl_c := make(chan os.Signal)
 	signal.Notify(ctrl_c, os.Interrupt)
 	select {
-	case <-dctx.Done():
-	case <-time.After(3 * du_set):
-		dctx.Break(nil)
-		<-dctx.Done()
+	case <-sctx.Done():
+	case <-time.After(3*du_set + 10*time.Millisecond):
+		sctx.Break(nil)
+		<-sctx.Done()
 	case <-ctrl_c:
-		dctx.Break(nil)
-		<-dctx.Done()
+		sctx.Break(nil)
+		<-sctx.Done()
 	}
-	fmt.Println("done", dctx.Err())
+	fmt.Println("done", sctx.Err())
 }

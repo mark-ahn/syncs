@@ -6,14 +6,14 @@ import (
 )
 
 type ThreadServer interface {
-	ServeThread(ctx context.Context, breaker ContextBreakSetter) error
+	ServeThread(ctx context.Context, tctx ThreadContext) error
 }
 
-type ThreadServerFunc func(context.Context, ContextBreakSetter)
+type ThreadServerFunc func(context.Context, ThreadContext)
 
-func (__ ThreadServerFunc) ServeThread(ctx context.Context, bk ContextBreakSetter) { __(ctx, bk) }
+func (__ ThreadServerFunc) ServeThread(ctx context.Context, tctx ThreadContext) { __(ctx, tctx) }
 
-func Serve(ctx context.Context, server ThreadServer) (ServeHandle, error) {
+func Serve(ctx context.Context, server ThreadServer) (ServeContext, error) {
 	in_ctx, cancel := context.WithCancel(ctx)
 	in_ctx, done := WithThreadDoneNotify(in_ctx, &sync.WaitGroup{})
 	rctx := NewDoneChContext(in_ctx, done, cancel)

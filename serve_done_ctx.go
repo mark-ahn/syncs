@@ -19,22 +19,22 @@ type contextErr interface {
 	Err() error
 }
 
-type ContextBreak interface {
+type contextBreak interface {
 	Break(error) bool
 }
 
-type ValueSetter interface {
+type valueSetter interface {
 	SetValue(interface{}, interface{}) interface{}
 }
 
-type ContextBreakSetter interface {
-	ContextBreak
-	ValueSetter
+type ThreadContext interface {
+	contextBreak
+	valueSetter
 }
 
-type ServeHandle interface {
+type ServeContext interface {
 	contextDoneErr
-	ContextBreak
+	contextBreak
 	Valuable
 }
 
