@@ -6,14 +6,14 @@ import (
 )
 
 type ThreadServer interface {
-	ServeThread(ctx context.Context, breaker ContextBreak)
+	ServeThread(ctx context.Context, breaker ContextBreakSetter) error
 }
 
-type ThreadServerFunc func(context.Context, ContextBreak)
+type ThreadServerFunc func(context.Context, ContextBreakSetter)
 
-func (__ ThreadServerFunc) ServeThread(ctx context.Context, bk ContextBreak) { __(ctx, bk) }
+func (__ ThreadServerFunc) ServeThread(ctx context.Context, bk ContextBreakSetter) { __(ctx, bk) }
 
-func Serve(ctx context.Context, server ThreadServer) SrvHandle {
+func Serve(ctx context.Context, server ThreadServer) (ServeHandle, error) {
 	in_ctx, cancel := context.WithCancel(ctx)
 	in_ctx, done := WithThreadDoneNotify(in_ctx, &sync.WaitGroup{})
 	rctx := NewDoneChContext(in_ctx, done, cancel)
@@ -22,7 +22,10 @@ func Serve(ctx context.Context, server ThreadServer) SrvHandle {
 		<-rctx.Done()
 	}()
 
-	server.ServeThread(in_ctx, rctx)
+	err := server.ServeThread(in_ctx, rctx)
+	if err != nil {
+		return nil, err
+	}
 
-	return rctx
+	return rctx, nil
 }

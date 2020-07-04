@@ -2,6 +2,7 @@ package syncs
 
 import (
 	"context"
+	"sync"
 	"sync/atomic"
 )
 
@@ -22,9 +23,19 @@ type ContextBreak interface {
 	Break(error) bool
 }
 
-type SrvHandle interface {
+type ValueSetter interface {
+	SetValue(interface{}, interface{}) interface{}
+}
+
+type ContextBreakSetter interface {
+	ContextBreak
+	ValueSetter
+}
+
+type ServeHandle interface {
 	contextDoneErr
 	ContextBreak
+	Valuable
 }
 
 type DoneChContext struct {
@@ -33,6 +44,9 @@ type DoneChContext struct {
 	err    error
 	set    int32
 	cancel func()
+
+	values     map[interface{}]interface{}
+	value_lock sync.RWMutex
 }
 
 func NewDoneChContext(pctx context.Context, done <-chan struct{}, cancel func()) *DoneChContext {
@@ -42,6 +56,9 @@ func NewDoneChContext(pctx context.Context, done <-chan struct{}, cancel func())
 		err:    nil,
 		set:    0,
 		cancel: cancel,
+
+		values:     make(map[interface{}]interface{}),
+		value_lock: sync.RWMutex{},
 	}
 	return __
 }
@@ -77,4 +94,17 @@ func (__ *DoneChContext) Err() error {
 	default:
 		return nil
 	}
+}
+
+func (__ *DoneChContext) Value(k interface{}) interface{} {
+	__.value_lock.RLock()
+	defer __.value_lock.RUnlock()
+	return __.values[k]
+}
+func (__ *DoneChContext) SetValue(k, v interface{}) interface{} {
+	__.value_lock.Lock()
+	old := __.values[k]
+	__.values[k] = v
+	__.value_lock.Unlock()
+	return old
 }
