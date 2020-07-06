@@ -9,9 +9,11 @@ type ThreadServer interface {
 	ServeThread(ctx context.Context, tctx ThreadContext) error
 }
 
-type ThreadServerFunc func(context.Context, ThreadContext)
+type ThreadServerFunc func(context.Context, ThreadContext) error
 
-func (__ ThreadServerFunc) ServeThread(ctx context.Context, tctx ThreadContext) { __(ctx, tctx) }
+func (__ ThreadServerFunc) ServeThread(ctx context.Context, tctx ThreadContext) error {
+	return __(ctx, tctx)
+}
 
 func Serve(ctx context.Context, server ThreadServer) (ServeContext, error) {
 	in_ctx, cancel := context.WithCancel(ctx)
