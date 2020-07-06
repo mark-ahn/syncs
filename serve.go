@@ -26,6 +26,7 @@ func Serve(ctx context.Context, server ThreadServer) (ServeContext, error) {
 
 	err := server.ServeThread(in_ctx, rctx)
 	if err != nil {
+		cancel()
 		return nil, err
 	}
 
