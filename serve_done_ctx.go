@@ -30,6 +30,7 @@ type valueSetter interface {
 type ThreadContext interface {
 	contextBreak
 	valueSetter
+	Valuable
 }
 
 type ServeContext interface {
