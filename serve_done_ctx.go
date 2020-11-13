@@ -27,6 +27,10 @@ type valueSetter interface {
 	SetValue(interface{}, interface{}) interface{}
 }
 
+type threadContextBranchable interface {
+	Branch(context.Context) (ThreadContext, error)
+}
+
 type ThreadContext interface {
 	contextBreak
 	valueSetter
@@ -50,6 +54,12 @@ type DoneChContext struct {
 	value_lock sync.RWMutex
 }
 
+type BreakableContext interface {
+	context.Context
+	contextBreak
+	threadContextBranchable
+}
+
 func NewDoneChContext(pctx context.Context, done <-chan struct{}, cancel func()) *DoneChContext {
 	__ := &DoneChContext{
 		pctx:   pctx,
@@ -62,6 +72,19 @@ func NewDoneChContext(pctx context.Context, done <-chan struct{}, cancel func())
 		value_lock: sync.RWMutex{},
 	}
 	return __
+}
+
+func (__ *DoneChContext) Branch(ctx context.Context) (ThreadContext, error) {
+	return &DoneChContext{
+		pctx:   ctx,
+		done:   __.done,
+		err:    nil,
+		set:    0,
+		cancel: __.cancel,
+
+		values:     make(map[interface{}]interface{}),
+		value_lock: sync.RWMutex{},
+	}, nil
 }
 
 func (__ *DoneChContext) Break(err error) bool {
