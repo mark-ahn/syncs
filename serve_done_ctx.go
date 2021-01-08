@@ -2,6 +2,7 @@ package syncs
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"sync/atomic"
 )
@@ -97,6 +98,7 @@ func (__ *DoneChContext) Break(err error) bool {
 			return false
 		}
 		__.err = err
+		fmt.Println("cancel by break", err)
 		__.cancel()
 		return true
 	}

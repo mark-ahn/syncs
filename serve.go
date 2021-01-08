@@ -28,11 +28,13 @@ func Serve(ctx context.Context, server ThreadServer) (ServeContext, error) {
 	rctx := NewDoneChContext(in_ctx, done, cancel)
 	go func() {
 		defer cancel()
+		defer fmt.Println("cancel by pending")
 		<-rctx.Done()
 	}()
 
 	err := server.ServeThread(in_ctx, rctx)
 	if err != nil {
+		fmt.Println("cancel by err", err)
 		cancel()
 		return nil, err
 	}
