@@ -49,6 +49,8 @@ func ThreadCounterFrom(ctx context.Context) ThreadCounter {
 	return v
 }
 
+// --------------------------------------------------------------------------------------
+
 type WaitGroup interface {
 	SyncCounter
 	Wait()
@@ -84,7 +86,7 @@ func (__ *cnt_starter) Done() {
 	__.counter.Done()
 }
 
-// func (__ *cnt_starter) Wait() { __.group.Wait() }
+// --------------------------------------------------------------------------------------
 
 func WithThreadDoneNotify(ctx context.Context, threads WaitGroup) (context.Context, <-chan struct{}) {
 	p_cnt := ThreadCounterFrom(ctx)
@@ -107,18 +109,10 @@ func WithThreadDoneNotify(ctx context.Context, threads WaitGroup) (context.Conte
 		defer close(done_ch)
 		defer threads.Wait()
 
-	loop:
-		for {
-			select {
-			// case <-start_ctx.Done():
-			// 	break loop
-			case <-ctx.Done():
-				mutex.Lock()
-				close(sync_ch)
-				mutex.Unlock()
-				break loop
-			}
-		}
+		<-ctx.Done()
+		mutex.Lock()
+		close(sync_ch)
+		mutex.Unlock()
 	}()
 	return in_ctx, done_ch
 }

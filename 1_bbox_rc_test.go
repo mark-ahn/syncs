@@ -60,8 +60,8 @@ func TestRc(t *testing.T) {
 
 		stream := rc.Object().(io.ReadWriter)
 
-		stream.Read([]byte{})
-		stream.Write([]byte{})
+		_, _ = stream.Read([]byte{})
+		_, _ = stream.Write([]byte{})
 
 	}
 
@@ -98,8 +98,8 @@ func TestRcGeneric(t *testing.T) {
 
 		stream := rc.Object()
 
-		stream.Read([]byte{})
-		stream.Write([]byte{})
+		_, _ = stream.Read([]byte{})
+		_, _ = stream.Write([]byte{})
 
 	}
 

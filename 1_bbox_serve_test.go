@@ -59,7 +59,7 @@ func Test_Serve(t *testing.T) {
 	du_set := DurationFrom(sctx)
 	fmt.Println(du_set)
 
-	ctrl_c := make(chan os.Signal)
+	ctrl_c := make(chan os.Signal, 1)
 	signal.Notify(ctrl_c, os.Interrupt)
 	select {
 	case <-sctx.Done():

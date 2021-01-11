@@ -2,8 +2,6 @@ package syncs
 
 import (
 	"context"
-	"fmt"
-	"runtime/debug"
 	"sync"
 	"sync/atomic"
 )
@@ -99,8 +97,6 @@ func (__ *DoneChContext) Break(err error) bool {
 			return false
 		}
 		__.err = err
-		fmt.Println("cancel by break", err)
-		debug.PrintStack()
 		__.cancel()
 		return true
 	}
