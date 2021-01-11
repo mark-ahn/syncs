@@ -88,13 +88,18 @@ func (__ *cnt_starter) Done() {
 
 // --------------------------------------------------------------------------------------
 
+// WithThreadDoneNotify inserts thread-counter into context, then returns a channel which would be closed
+// after all threads spawnded with the thread-counter are terminated.
 func WithThreadDoneNotify(ctx context.Context, threads WaitGroup) (context.Context, <-chan struct{}) {
 	p_cnt := ThreadCounterFrom(ctx)
 
+	// sync_ch & mutex confirms that threads.Add() always be called before thread.Wait()
+	// in other words it makes avoid threads.Add() be called after thread.Wait()
 	mutex := &sync.Mutex{}
 	sync_ch := make(chan struct{})
 
 	in_ctx := WithThreadCounter(ctx, new_cnt_starter(threads, mutex, sync_ch))
+	// done_ch is closed after all threads are terminated
 	done_ch := make(chan struct{})
 
 	cnted := p_cnt.AddOrNot(1)
