@@ -5,7 +5,7 @@ import (
 	"log"
 )
 
-func ThreadCounterFromWithCount(ctx context.Context, cnt int) (ThreadCounter, error) {
+func ThreadCounterWithCountFrom(ctx context.Context, cnt int) (ThreadCounter, error) {
 	th_cnt := ThreadCounterFrom(ctx)
 	ok := th_cnt.AddOrNot(1)
 	if !ok {
@@ -16,7 +16,7 @@ func ThreadCounterFromWithCount(ctx context.Context, cnt int) (ThreadCounter, er
 
 func NewThreadServerFunc(f func(done <-chan struct{}) error, breakOnTerminated bool) ThreadServerFunc {
 	return func(ctx context.Context, tctx ThreadContext) error {
-		th_cnt, err := ThreadCounterFromWithCount(ctx, 1)
+		th_cnt, err := ThreadCounterWithCountFrom(ctx, 1)
 		if err != nil {
 			return err
 		}
