@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
+	"time"
 )
 
 type context_args int
@@ -86,6 +87,14 @@ func (__ *Parser) StringVar(p *string, key string, def string, desc string) {
 	})
 }
 
+func (__ *Parser) DurationVar(p *time.Duration, key string, def time.Duration, desc string) {
+	__.items = append(__.items, parse_item{
+		key:   key,
+		value: reflect.ValueOf(p).Elem(),
+		def:   reflect.ValueOf(def),
+	})
+}
+
 func (__ *Parser) Parse() error {
 	var err error
 	match_check_map := make(map[string]struct{}, len(__.items))
@@ -101,15 +110,21 @@ func (__ *Parser) Parse() error {
 		case reflect.String:
 			value, err = __.arg_map.String(d.key)
 		default:
-			v_intf, ok := d.value.Interface().(Value)
-			if !ok {
-				return fmt.Errorf("value does not implement Value")
+			switch d.value.Interface().(type) {
+			case time.Duration:
+				value, err = __.arg_map.Duration(d.key)
+			default:
+				v_intf, ok := d.value.Interface().(Value)
+				if !ok {
+					return fmt.Errorf("value does not implement Value")
+				}
+				v_str := __.arg_map[d.key]
+				err := v_intf.Set(v_str)
+				if err != nil {
+					return err
+				}
 			}
-			v_str := __.arg_map[d.key]
-			err := v_intf.Set(v_str)
-			if err != nil {
-				return err
-			}
+
 		}
 		switch err.(type) {
 		case nil:
@@ -181,6 +196,20 @@ func (__ ArgMap) Bool(key string) (bool, error) {
 		return res, NoKeyInArgMapErrorOf(key)
 	}
 	b, err := strconv.ParseBool(v)
+	if err != nil {
+		return res, err
+	}
+	res = b
+	return res, nil
+}
+
+func (__ ArgMap) Duration(key string) (time.Duration, error) {
+	var res time.Duration
+	v, ok := __[key]
+	if !ok {
+		return res, NoKeyInArgMapErrorOf(key)
+	}
+	b, err := time.ParseDuration(v)
 	if err != nil {
 		return res, err
 	}
