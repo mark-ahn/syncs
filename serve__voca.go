@@ -7,7 +7,7 @@ import (
 
 func ThreadCounterWithCountFrom(ctx context.Context, cnt int) (ThreadCounter, error) {
 	th_cnt := ThreadCounterFrom(ctx)
-	ok := th_cnt.AddOrNot(1)
+	ok := th_cnt.AddOrNot(cnt)
 	if !ok {
 		return nil, ServeThreadErrorf("context done")
 	}
