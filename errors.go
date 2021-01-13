@@ -26,3 +26,12 @@ func NoKeyInArgMapErrorOf(key string) NoKeyInArgMapError {
 func (__ NoKeyInArgMapError) Unwrap() error {
 	return errors.Unwrap(__.error)
 }
+
+type TrySpawnThreadOnContextDoneError struct{ error }
+
+func TrySpawnThreadOnContextDoneErrorf(fmtStr string, args ...interface{}) TrySpawnThreadOnContextDoneError {
+	return TrySpawnThreadOnContextDoneError{error: fmt.Errorf("TrySpawnThreadOnContextDoneError: "+fmtStr, args...)}
+}
+func (__ TrySpawnThreadOnContextDoneError) Unwrap() error {
+	return errors.Unwrap(__.error)
+}

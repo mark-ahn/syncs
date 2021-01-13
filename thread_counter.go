@@ -16,7 +16,16 @@ type SyncCounter interface {
 
 type ThreadCounter interface {
 	AddOrNot(int) bool
+	TryAdd(int) error
 	Done()
+}
+
+func try_add_thread_count(tcnt ThreadCounter, n int) error {
+	ok := tcnt.AddOrNot(n)
+	if !ok {
+		return TrySpawnThreadOnContextDoneErrorf("with count %d", n)
+	}
+	return nil
 }
 
 type dummy_counter <-chan struct{}
@@ -28,6 +37,9 @@ func (__ dummy_counter) AddOrNot(int) bool {
 	default:
 		return true
 	}
+}
+func (__ dummy_counter) TryAdd(n int) error {
+	return try_add_thread_count(__, n)
 }
 func (_ dummy_counter) Done() {}
 
@@ -84,6 +96,10 @@ func (__ *cnt_starter) AddOrNot(i int) bool {
 
 func (__ *cnt_starter) Done() {
 	__.counter.Done()
+}
+
+func (__ *cnt_starter) TryAdd(n int) error {
+	return try_add_thread_count(__, n)
 }
 
 // --------------------------------------------------------------------------------------
