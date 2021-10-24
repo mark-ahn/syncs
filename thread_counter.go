@@ -41,7 +41,7 @@ func (__ dummy_counter) AddOrNot(int) bool {
 func (__ dummy_counter) TryAdd(n int) error {
 	return try_add_thread_count(__, n)
 }
-func (_ dummy_counter) Done() {}
+func (dummy_counter) Done() {}
 
 type context_key int
 
