@@ -7,39 +7,35 @@ import (
 )
 
 type contextDoneErr interface {
-	contextDone
-	contextErr
+	DoneNotifier
+	ErrorReader
 }
 
-type contextDone interface {
+type DoneNotifier interface {
 	Done() <-chan struct{}
 }
 
-type contextErr interface {
+type ErrorReader interface {
 	Err() error
 }
 
-type contextBreak interface {
+type ContextBreaker interface {
 	Break(error) bool
 }
 
-type valueSetter interface {
+type ValueSetter interface {
 	SetValue(interface{}, interface{}) interface{}
 }
 
-// type threadContextBranchable interface {
-// 	Branch(context.Context) (ThreadContext, error)
-// }
-
 type ThreadContext interface {
-	contextBreak
-	valueSetter
+	ContextBreaker
+	ValueSetter
 	Valuable
 }
 
 type ServeContext interface {
 	contextDoneErr
-	contextBreak
+	ContextBreaker
 	Valuable
 }
 
@@ -54,13 +50,6 @@ type DoneChContext struct {
 	value_lock sync.RWMutex
 }
 
-// type BreakableContext interface {
-// 	context.Context
-// 	contextBreak
-// 	threadContextBranchable
-// }
-
-// NewDoneChContext returns DoneChContext which wraps pctx & done channel with ServeContext interface
 func NewDoneChContext(pctx context.Context, done <-chan struct{}, cancel func()) *DoneChContext {
 	__ := &DoneChContext{
 		pctx:   pctx,
@@ -74,19 +63,6 @@ func NewDoneChContext(pctx context.Context, done <-chan struct{}, cancel func())
 	}
 	return __
 }
-
-// func (__ *DoneChContext) Branch(ctx context.Context) (ThreadContext, error) {
-// 	return &DoneChContext{
-// 		pctx:   ctx,
-// 		done:   __.done,
-// 		err:    nil,
-// 		set:    0,
-// 		cancel: __.cancel,
-
-// 		values:     make(map[interface{}]interface{}),
-// 		value_lock: sync.RWMutex{},
-// 	}, nil
-// }
 
 func (__ *DoneChContext) Break(err error) bool {
 	select {
