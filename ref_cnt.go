@@ -2,36 +2,37 @@ package syncs
 
 import "sync/atomic"
 
-type RefCounterOfSome struct {
+type RefCounter[T any] struct {
 	cnt    *uint32
-	obj    Some
-	relase func(Some)
+	obj    T
+	relase func(T)
 }
 
-func NewRefCounterOfSome(obj Some, release func(Some)) *RefCounterOfSome {
+func NewRefCounter[T any](obj T, release func(T)) *RefCounter[T] {
 	cnt := uint32(1)
-	return &RefCounterOfSome{
+	return &RefCounter[T]{
 		cnt:    &cnt,
 		obj:    obj,
 		relase: release,
 	}
 }
 
-func (__ *RefCounterOfSome) Clone() *RefCounterOfSome {
+func (__ *RefCounter[T]) Clone() *RefCounter[T] {
 	if atomic.AddUint32(__.cnt, 1) == 1 {
 		panic("Release() called during clone")
 	}
 	return __
 }
 
-func (__ *RefCounterOfSome) Object() Some {
+func (__ *RefCounter[T]) Item() T {
 	if atomic.LoadUint32(__.cnt) == 0 {
-		return nil
+		var empty T
+		return empty
 	}
 	return __.obj
 }
 
-func (__ *RefCounterOfSome) Release() {
+func (__ *RefCounter[T]) Release() {
 	if atomic.AddUint32(__.cnt, ^uint32(0)) == 0 {
 		__.relase(__.obj)
 	}

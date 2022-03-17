@@ -2,7 +2,6 @@ package syncs_test
 
 import (
 	"fmt"
-	"io"
 	"math/rand"
 	"sync"
 	"sync/atomic"
@@ -38,16 +37,16 @@ func init() {
 	rand.Seed(time.Now().Unix())
 }
 func TestRc(t *testing.T) {
-	rc := syncs.NewRefCounterOfInterface(&dummy_stream{}, func(obj interface{}) {
-		obj.(io.Closer).Close()
+	rc := syncs.NewRefCounter(&dummy_stream{}, func(obj *dummy_stream) {
+		obj.Close()
 	})
 
 	defer rc.Release()
 
 	threads := &sync.WaitGroup{}
 
-	var some_work func(*syncs.RefCounterOfInterface)
-	some_work = func(rc *syncs.RefCounterOfInterface) {
+	var some_work func(*syncs.RefCounter[*dummy_stream])
+	some_work = func(rc *syncs.RefCounter[*dummy_stream]) {
 		defer func() {
 			rc.Release()
 			threads.Done()
@@ -58,7 +57,7 @@ func TestRc(t *testing.T) {
 			go some_work(rc.Clone())
 		}
 
-		stream := rc.Object().(io.ReadWriter)
+		stream := rc.Item()
 
 		_, _ = stream.Read([]byte{})
 		_, _ = stream.Write([]byte{})
@@ -71,7 +70,7 @@ func TestRc(t *testing.T) {
 	}
 
 	threads.Wait()
-	ds := rc.Object().(*dummy_stream)
+	ds := rc.Item()
 	fmt.Printf("done read: %v, write %v\n", ds.readCnt, ds.writeCnt)
 }
 
