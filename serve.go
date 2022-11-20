@@ -45,7 +45,7 @@ func Serve(ctx context.Context, server ThreadServer, opts ...ServeOpt) (ServeCon
 	in_ctx, stop := context.WithCancel(ctx)
 
 	if opt.Label != "" {
-		in_ctx, _ = metrics.OverrideScopeWithLabelOr[Scope](ctx, []string{opt.Label})
+		in_ctx, _ = metrics.OverrideScopeWithLabelOr[MetricData](ctx, []string{opt.Label})
 	}
 	in_ctx, done := WithThreadDoneNotify(in_ctx, &sync.WaitGroup{})
 	rctx := NewDoneChContext(in_ctx, done, stop)
