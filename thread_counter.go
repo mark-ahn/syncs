@@ -3,6 +3,8 @@ package syncs
 import (
 	"context"
 	"sync"
+
+	"github.com/mark-ahn/metrics"
 )
 
 type Valuable interface {
@@ -72,13 +74,15 @@ type cnt_starter struct {
 	counter SyncCounter
 	done    <-chan struct{}
 	mutext  *sync.Mutex
+	scope   Scope
 }
 
-func new_cnt_starter(group SyncCounter, mutext *sync.Mutex, done <-chan struct{}) *cnt_starter {
+func new_cnt_starter(group SyncCounter, mutext *sync.Mutex, done <-chan struct{}, scope Scope) *cnt_starter {
 	return &cnt_starter{
 		counter: group,
 		done:    done,
 		mutext:  mutext,
+		scope:   scope,
 	}
 }
 func (__ *cnt_starter) AddOrNot(i int) bool {
@@ -90,12 +94,14 @@ func (__ *cnt_starter) AddOrNot(i int) bool {
 		return false
 	default:
 		__.counter.Add(i)
+		__.scope.PutMetric(ThreadCountMetric{Delta: i}, nil)
 		return true
 	}
 }
 
 func (__ *cnt_starter) Done() {
 	__.counter.Done()
+	__.scope.PutMetric(ThreadCountMetric{Delta: -1}, nil)
 }
 
 func (__ *cnt_starter) TryAdd(n int) error {
@@ -114,7 +120,9 @@ func WithThreadDoneNotify(ctx context.Context, threads WaitGroup) (context.Conte
 	mutex := &sync.Mutex{}
 	sync_ch := make(chan struct{})
 
-	in_ctx := WithThreadCounter(ctx, new_cnt_starter(threads, mutex, sync_ch))
+	scope := metrics.ScopeFromOrDummy[MetricData](ctx)
+
+	in_ctx := WithThreadCounter(ctx, new_cnt_starter(threads, mutex, sync_ch, scope))
 	// done_ch is closed after all threads are terminated
 	done_ch := make(chan struct{})
 
