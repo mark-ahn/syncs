@@ -22,7 +22,7 @@ func (__ ThreadServerFunc) ServeThread(ctx context.Context, tctx ThreadContext) 
 }
 
 type ServeOpts struct {
-	Id string
+	Label string
 }
 
 func DefaultServeOpts() *ServeOpts {
@@ -31,6 +31,12 @@ func DefaultServeOpts() *ServeOpts {
 
 type ServeOpt = goes.OptionSetter[ServeOpts]
 
+func ServeOptLabel(label string) ServeOpt {
+	return func(option *ServeOpts) {
+		option.Label = label
+	}
+}
+
 // Serve serves all threads from server, then returns ServeContext which is a handle
 // that can signal all threads to be terminated using Break() & confirms all threads are terminated using Done()
 func Serve(ctx context.Context, server ThreadServer, opts ...ServeOpt) (ServeContext, error) {
@@ -38,8 +44,8 @@ func Serve(ctx context.Context, server ThreadServer, opts ...ServeOpt) (ServeCon
 
 	in_ctx, stop := context.WithCancel(ctx)
 
-	if opt.Id != "" {
-		in_ctx, _ = metrics.OverrideScopeWithLabelOr[Scope](ctx, []string{opt.Id})
+	if opt.Label != "" {
+		in_ctx, _ = metrics.OverrideScopeWithLabelOr[Scope](ctx, []string{opt.Label})
 	}
 	in_ctx, done := WithThreadDoneNotify(in_ctx, &sync.WaitGroup{})
 	rctx := NewDoneChContext(in_ctx, done, stop)
