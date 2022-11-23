@@ -74,10 +74,10 @@ type cnt_starter struct {
 	counter SyncCounter
 	done    <-chan struct{}
 	mutext  *sync.Mutex
-	scope   Scope
+	scope   Probe
 }
 
-func new_cnt_starter(group SyncCounter, mutext *sync.Mutex, done <-chan struct{}, scope Scope) *cnt_starter {
+func new_cnt_starter(group SyncCounter, mutext *sync.Mutex, done <-chan struct{}, scope Probe) *cnt_starter {
 	return &cnt_starter{
 		counter: group,
 		done:    done,
@@ -120,7 +120,7 @@ func WithThreadDoneNotify(ctx context.Context, threads WaitGroup) (context.Conte
 	mutex := &sync.Mutex{}
 	sync_ch := make(chan struct{})
 
-	scope := metrics.ScopeFromOrDummy[MetricData](ctx)
+	scope := metrics.ProbeFromOrDummy[MetricData](ctx)
 
 	in_ctx := WithThreadCounter(ctx, new_cnt_starter(threads, mutex, sync_ch, scope))
 	// done_ch is closed after all threads are terminated

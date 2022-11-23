@@ -6,7 +6,7 @@ type MetricData interface {
 	metric_type()
 }
 
-type Scope = metrics.Scope[MetricData]
+type Probe = metrics.Probe[MetricData]
 
 type ThreadCountMetric struct {
 	Delta int
